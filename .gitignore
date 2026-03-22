@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Data
+US_Accidents_March23.csv
+*.parquet
+*.csv
+
+# OS
+.DS_Store
