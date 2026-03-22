@@ -25,10 +25,10 @@ The ETL process is implemented using **Azure Data Factory (ADF)** Mapping Data F
 ### Mapping Data Flow Logic:
 1.  **Source**: Delimited text dataset from the `raw/` container.
 2.  **Derived Column (`TemporalFeatures`)**:
-    - `Hour_of_Day`: `hour(toTimestamp(Start_Time))`
-    - `Is_Rush_Hour`: `dayOfWeek(toTimestamp(Start_Time)) >= 2 && dayOfWeek(toTimestamp(Start_Time)) <= 6 && ((hour(toTimestamp(Start_Time)) >= 7 && hour(toTimestamp(Start_Time)) < 10) || (hour(toTimestamp(Start_Time)) >= 16 && hour(toTimestamp(Start_Time)) < 19))`
+    - `Hour_of_Day`: `hour(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss'))`
+    - `Is_Rush_Hour`: `iif(dayOfWeek(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) >= 2 && dayOfWeek(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) <= 6 && ((hour(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) >= 7 && hour(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) < 10) || (hour(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) >= 16 && hour(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) < 19)), 1, 0)`
 3.  **Derived Column (`WeatherSeverity`)**:
-    - `Weather_Severity_Mapped`: `case(Weather_Condition == 'Fair' || Weather_Condition == 'Clear', 1, Weather_Condition == 'Cloudy' || Weather_Condition == 'Fog', 2, Weather_Condition == 'Light Rain' || Weather_Condition == 'Rain', 3, 4)`
+    - `Weather_Severity_Mapped`: `iif(Weather_Condition == 'Fair' || Weather_Condition == 'Clear', 1, iif(Weather_Condition == 'Cloudy' || Weather_Condition == 'Fog', 2, iif(Weather_Condition == 'Light Rain' || Weather_Condition == 'Rain', 3, 4)))`
 4.  **Sink**: Parquet dataset in the `silver/` container.
 
 - **Validation**: Data flows automatically handle schema drift and can be configured for row-level validation.
