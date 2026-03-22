@@ -80,14 +80,17 @@ Three primary features were engineered to improve predictive performance:
     - *Rationale*: Simplifies over 100 unique `Weather_Condition` strings (e.g., "Light Rain", "Heavy Snow") into a actionable 1-4 scale.
     - *Computation*: String-matching mapping prioritized by precipitation and visibility impact.
 
-## Execution & Verification Guide
+## Project Implementation Status
 
-The pipeline has been verified for **Azure Data Factory (ADF)** compatibility. 
+### Phase 1: Data Engineering (COMPLETED)
+- **Infrastructure**: Azure Data Lake Storage Gen2 with medallion architecture (`raw`, `bronze`, `silver`).
+- **ETL Pipeline**: Fully implemented in **Azure Data Factory** using Mapping Data Flows.
+- **Data Quality**: Automated schema enforcement and column renaming (underscores) for Parquet compliance.
+- **Feature Engineering**: `Hour_of_Day`, `Is_Rush_Hour`, and `Weather_Severity_Mapped` successfully extracted via ADF expressions.
 
-1.  **ADF Pipeline**: A Mapping Data Flow has been designed to implement the transformation logic defined in Section II.2.
-2.  **Verification**: 
-    - Full 3GB dataset ingestion confirmed via Azure Storage Explorer.
-    - ETL logic validated locally using a 100,000-row sample via PySpark (`etl_process.py`).
-    - Schema enforcement and feature extraction (`Is_Rush_Hour`, `Weather_Severity_Mapped`) confirmed in the final Silver layer output.
+### Phase 2: Machine Learning Modeling (IN PROGRESS)
+- **Objective**: Predict accident severity (1-4).
+- **Model Candidate**: Random Forest or XGBoost Classifier.
+- **Evaluation Strategy**: Weighted F1-Score (to address severe class imbalance).
 
 *Note: PySpark scripts are retained in the repository for secondary local validation and logic reference.*
