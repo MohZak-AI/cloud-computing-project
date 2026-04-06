@@ -1,96 +1,384 @@
-# Cloud Computing Project - US Accidents Analysis (Phase 1)
+# Cloud Computing Project — US Accidents Analysis (Phase 1)
 
-This project focuses on building a reproducible data pipeline for analyzing the US Accidents (2016-2023) dataset. The goal is to predict accident severity based on time and weather features.
+---
 
-## Data Catalog & Architecture
+## 1. Objective
 
-We follow a medallion architecture to organize and process the data efficiently.
+The objective of this project is to design and implement a reproducible data pipeline for analyzing the US Accidents (2016–2023) dataset. The pipeline prepares the data for machine learning tasks, specifically predicting accident severity based on temporal and weather-related features.
 
-## II.1. Data Ingestion & Storage Layout
+The focus of Phase 1 is on data engineering, including ingestion, transformation, storage, validation, and exploratory analysis.
 
-### Project Implementation Status
-The storage infrastructure has been configured as an **Azure Data Lake Storage (ADLS) Gen2** with a hierarchical namespace enabled to support the medallion architecture.
+---
 
-- **Storage Account**: `trafficseveritydata` (User-managed).
-- **Containers Created**:
-    - `raw`: Immutable landing zone for the original `US_Accidents_March23.csv` dataset.
-    - `bronze`: Cleaned, typed data in Parquet format.
-    - `silver`: Feature-enriched data optimized for machine learning.
-- **Ingestion Mode**: Batch (Single-load for Phase 1).
+## 2. Azure Environment
 
-## II.2. ETL & Data Quality Pipeline (Azure Data Factory)
+All components were deployed and executed in Microsoft Azure under:
 
-The ETL process is implemented using **Azure Data Factory (ADF)** Mapping Data Flows for scalable, low-code transformation:
+**Resource Group:** `rg-60302085`
 
-### Mapping Data Flow Logic:
-1.  **Source**: Delimited text dataset from the `raw/` container.
-2.  **Derived Column (`TemporalFeatures`)**:
-    - `Hour_of_Day`: `hour(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss'))`
-    - `Is_Rush_Hour`: `iif(dayOfWeek(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) >= 2 && dayOfWeek(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) <= 6 && ((hour(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) >= 7 && hour(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) < 10) || (hour(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) >= 16 && hour(toTimestamp(Start_Time, 'yyyy-MM-dd HH:mm:ss')) < 19)), 1, 0)`
-3.  **Derived Column (`WeatherSeverity`)**:
-    - `Weather_Severity_Mapped`: `iif(Weather_Condition == 'Fair' || Weather_Condition == 'Clear', 1, iif(Weather_Condition == 'Cloudy' || Weather_Condition == 'Fog', 2, iif(Weather_Condition == 'Light Rain' || Weather_Condition == 'Rain', 3, 4)))`
-4.  **Sink**: Parquet dataset in the `silver/` container.
+### Services Used:
 
-- **Validation**: Data flows automatically handle schema drift and can be configured for row-level validation.
+* Azure Data Factory (ADF) → ETL pipeline
+* Azure Data Lake Storage Gen2 → data storage
+* Azure Databricks → validation, cleaning, EDA
 
-## II.3. Cataloging, Lineage & Governance
+---
 
-### Data Catalog (Metadata)
+## 3. Data Storage & Architecture
 
-| Attribute | Raw Type | Silver Type | Description |
-|---|---|---|---|
-| ID | String | String | Unique accident identifier. |
-| Severity | Integer | Integer | Impact on traffic (1: low, 4: high). |
-| Start_Time | String | Timestamp | UTC timestamp of accident start. |
-| Weather_Condition | String | String | Categorical weather description. |
-| Hour_of_Day | N/A | Integer | Derived feature for temporal analysis. |
-| Is_Rush_Hour | N/A | Boolean | Derived feature for peak traffic analysis. |
-| Weather_Severity | N/A | Integer | Mapped 1-4 scale representing adverse weather risk. |
+### Storage Account
 
-### Data Lineage
-Data flows from the **Raw Landing Zone** through the **Bronze Layer** (Cleaning) into the **Silver Layer** (Feature Engineering). Lineage is tracked via partitioned Parquet formats, ensuring every transformation is traceable and reproducible.
+**projecttraffic60302085**
 
-### Assumptions
-- Missing temperature data follows a normal distribution around the mean for the given period.
-- "Rush Hour" is defined as 7-10 AM and 4-7 PM on weekdays.
-- Adversity of weather is prioritized for mapping (e.g., precipitation increases severity).
+### Data Organization
 
-## II.4. Exploratory Data Analysis (EDA)
+The project uses a structured data lake design:
 
-A concise analysis of a 100,000-row sample was conducted to evaluate data readiness:
+* `raw/` → original data
+* `processed/` → transformed data (ADF output)
+* `curated/` → cleaned and analysis-ready data
 
-- **Target Distribution (Severity)**:
-    - Severity 2 (55%) and Severity 3 (44.8%) dominate the dataset.
-    - Extreme severities (1 and 4) are rare (<0.2%), indicating a significant class imbalance that must be addressed during model training.
-- **Top Weather Conditions**: "Fair", "Mostly Cloudy", and "Cloudy" are the most frequent, suggesting the model will need strong baseline handling for clear weather vs. rare adverse conditions.
-- **Null Assessment**: `Wind_Chill(F)` shows the highest missingness (~15% in samples), confirming the need for mean imputation in the Bronze layer.
-- **Data Risk**: The class imbalance in `Severity` suggests that standard accuracy might be a misleading metric; F1-score or Balanced Accuracy should be used.
+### Medallion Architecture Alignment
 
-## II.5. Feature Extraction & Selection
+| Layer  | Project Name |
+| ------ | ------------ |
+| Bronze | raw          |
+| Silver | processed    |
+| Gold   | curated      |
 
-Three primary features were engineered to improve predictive performance:
+This layered approach ensures:
 
-1.  **`Hour_of_Day`**:
-    - *Rationale*: Accident frequency varies significantly by time (e.g., higher at night or during twilight).
-    - *Computation*: Extracted from `Start_Time`.
-2.  **`Is_Rush_Hour`**:
-    - *Rationale*: Higher traffic density during peak hours increases the likelihood and potential severity of collisions.
-    - *Computation*: Boolean flag for 7-10 AM and 4-7 PM on weekdays.
-3.  **`Weather_Severity`**:
-    - *Rationale*: Simplifies over 100 unique `Weather_Condition` strings (e.g., "Light Rain", "Heavy Snow") into a actionable 1-4 scale.
-    - *Computation*: String-matching mapping prioritized by precipitation and visibility impact.
+* traceability
+* reproducibility
+* separation of concerns
 
-## Project Implementation Status
+---
 
-### Phase 1: Data Engineering (COMPLETED)
-- **Infrastructure**: Azure Data Lake Storage Gen2 with medallion architecture (`raw`, `bronze`, `silver`).
-- **ETL Pipeline**: Fully implemented in **Azure Data Factory** using Mapping Data Flows.
-- **Data Quality**: Automated schema enforcement and column renaming (underscores) for Parquet compliance.
-- **Feature Engineering**: `Hour_of_Day`, `Is_Rush_Hour`, and `Weather_Severity_Mapped` successfully extracted via ADF expressions.
+## 4. Data Ingestion
 
-### Phase 2: Machine Learning Modeling (IN PROGRESS)
-- **Objective**: Predict accident severity (1-4).
-- **Model Candidate**: Random Forest or XGBoost Classifier.
-- **Evaluation Strategy**: Weighted F1-Score (to address severe class imbalance).
+### Dataset
 
-*Note: PySpark scripts are retained in the repository for secondary local validation and logic reference.*
+* File: `US_Accidents_March23.csv`
+* Format: CSV
+* Location: `raw/`
+
+### Ingestion Details
+
+* Mode: Batch
+* Method: Azure Data Factory
+* Schema inference: Enabled
+* Schema drift: Enabled
+
+### Data Refresh Strategy
+
+The dataset is ingested using a one-time batch loading approach for Phase 1. The raw data is preserved without modification. Future improvements may include automated refresh using scheduled triggers.
+
+---
+
+## 5. ETL Pipeline (Azure Data Factory)
+
+### Pipeline Details
+
+* Pipeline Name: `accidents_processed_pipeline`
+* Data Flow Name: `df_reviews_json_to_parquet_partitioned`
+
+---
+
+### Pipeline Workflow
+
+#### 1. Source
+
+* Reads CSV from:
+  `raw/US_Accidents_March23.csv`
+* Schema drift enabled
+
+---
+
+#### 2. Derived Column (Feature Engineering)
+
+Created features:
+
+* `accidentYear` → extracted year
+
+* `hourOfDay` → extracted hour
+
+* `month` → extracted month
+
+* `isRushHour`:
+
+  * Weekdays
+  * 7–10 AM and 4–7 PM
+
+* `weatherSeverityMapped`:
+
+  * 1 → Clear/Fair
+  * 2 → Cloudy/Fog
+  * 3 → Rain
+  * 4 → Severe
+
+---
+
+#### 3. Select Transformation (Column Standardization)
+
+* Removed special characters using regex
+* Fixed issues with:
+
+  * spaces
+  * parentheses
+  * symbols
+* Ensured compatibility with Parquet
+
+---
+
+#### 4. Sink
+
+* Format: Parquet
+* Location: `processed/accidents/`
+* Partition column: `accidentYear`
+* Schema drift enabled
+
+---
+
+### Output Structure
+
+```text
+processed/accidents/
+  accidentYear=2016/
+  accidentYear=2017/
+  accidentYear=2018/
+```
+
+---
+
+## 6. Data Cleaning (Databricks)
+
+A Databricks notebook (`01_load_and_clean_accidents`) was used to refine the processed dataset into a curated layer.
+
+### Cleaning Steps
+
+* Converted:
+
+  * `Start_Time` → timestamp
+
+* Cast columns to integer:
+
+  * accidentYear
+  * hourOfDay
+  * month
+  * isRushHour
+  * weatherSeverityMapped
+
+* Removed duplicates
+
+* Removed rows with missing key fields:
+
+  * Start_Time
+  * Severity
+  * Weather_Condition
+
+* Filled missing categorical values:
+
+  * City → "Unknown"
+
+### Output
+
+Saved to:
+
+```text
+curated/accidents_features_v1/
+```
+
+---
+
+## 7. Data Validation
+
+Validation was performed during ETL and Databricks steps:
+
+* Verified schema correctness
+* Checked missing values
+* Ensured data types
+* Range validation:
+
+  * hourOfDay (0–23)
+  * month (1–12)
+
+This confirms dataset readiness.
+
+---
+
+## 8. Data Schema & Metadata
+
+### Key Columns
+
+| Column            | Type      |
+| ----------------- | --------- |
+| ID                | string    |
+| Severity          | integer   |
+| Start_Time        | timestamp |
+| Weather_Condition | string    |
+
+### Derived Features
+
+| Feature               | Type    |
+| --------------------- | ------- |
+| accidentYear          | integer |
+| hourOfDay             | integer |
+| month                 | integer |
+| isRushHour            | integer |
+| weatherSeverityMapped | integer |
+
+---
+
+## 9. Data Lineage
+
+```text
+Raw (CSV)
+   → ADF Pipeline (Transformation)
+   → Processed (Parquet)
+   → Databricks Cleaning
+   → Curated Dataset
+```
+
+---
+
+## 10. Feature Engineering
+
+Features created:
+
+* accidentYear → time trend
+* hourOfDay → daily patterns
+* month → seasonal patterns
+* isRushHour → traffic intensity
+* weatherSeverityMapped → weather impact
+
+These features were selected based on their relevance to accident severity prediction.
+
+---
+
+## 11. Exploratory Data Analysis (EDA)
+
+Performed using Databricks notebook (`03_eda_accidents`).
+
+### Analysis Conducted
+
+* Accidents by year
+* Accidents by hour
+* Rush vs non-rush hour
+* Weather severity distribution
+* Severity distribution
+
+### Key Insights
+
+* Accidents vary across years
+* Peak accidents occur during specific hours
+* Rush hour significantly impacts accident frequency
+* Most accidents occur in mild weather
+* Severity distribution is imbalanced
+
+---
+
+## 12. Data Organization & Performance
+
+* Stored in Parquet format
+* Partitioned by accidentYear
+
+Benefits:
+
+* faster queries
+* efficient filtering
+* scalable processing
+
+---
+
+## 13. Cataloging & Governance
+
+Metadata and schema were analyzed using:
+
+* Databricks notebook (`02_metadata_and_schema`)
+
+This includes:
+
+* schema inspection
+* column types
+* null analysis
+* dataset statistics
+
+---
+
+## 14. Source Code (Reference Implementation)
+
+A PySpark script (`etl_process.py`) is included in the `src/` folder.
+
+Purpose:
+
+* demonstrate transformation logic
+* provide reproducibility
+* allow local validation
+
+The main ETL pipeline is implemented in Azure Data Factory.
+
+---
+
+## 15. Databricks Notebooks
+
+Included in `src/`:
+
+* `01_load_and_clean_accidents` → cleaning
+* `02_metadata_and_schema` → schema analysis
+* `03_eda_accidents` → exploratory analysis
+
+These support validation and transparency.
+
+---
+
+## 16. System Architecture
+
+The system consists of:
+
+* Azure Data Lake Storage Gen2 → data storage
+* Azure Data Factory → ETL pipeline
+* Databricks → analysis and validation
+
+Data flows from raw to processed to curated layers.
+
+---
+
+## 17. Reproducibility
+
+The pipeline is fully reproducible and can be re-executed using Azure Data Factory and Databricks notebooks to produce consistent results.
+
+---
+
+## 18. Assumptions
+
+* Rush hour defined as peak traffic times
+* Weather severity based on condition categories
+* Time and weather impact accident likelihood
+
+---
+
+## 19. Phase 1 Status
+
+### Completed
+
+* Azure setup
+* Data ingestion
+* ETL pipeline
+* Feature engineering
+* Data cleaning
+* Metadata analysis
+* EDA
+
+### Next Phase
+
+* Machine learning model
+* evaluation
+* deployment
+
+---
+
+## 20. Summary
+
+Phase 1 successfully establishes a complete data pipeline that transforms raw accident data into a structured, validated, and analysis-ready dataset.
+
+The system is scalable, reproducible, and ready for machine learning tasks in Phase 2.
