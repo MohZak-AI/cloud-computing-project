@@ -1,0 +1,16 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineDeployment.schema.json
+name: blue
+endpoint_name: us-accidents-endpoint
+
+model: azureml:us_accidents_rf_model:5
+
+code_configuration:
+  code: ../src
+  scoring_script: score.py
+
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
+  conda_file: ../env/inference_conda.yml
+
+instance_type: Standard_DS3_v2
+instance_count: 3

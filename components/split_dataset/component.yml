@@ -1,0 +1,33 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+
+name: split_dataset
+display_name: Split Dataset (Phase 2)
+type: command
+
+inputs:
+  input_data:
+    type: uri_folder
+
+outputs:
+  train_out:
+    type: uri_folder
+  val_out:
+    type: uri_folder
+  test_out:
+    type: uri_folder
+  deploy_out:
+    type: uri_folder
+
+code: .
+
+command: >
+  python split.py
+  --input_data ${{inputs.input_data}}
+  --train_out ${{outputs.train_out}}
+  --val_out ${{outputs.val_out}}
+  --test_out ${{outputs.test_out}}
+  --deploy_out ${{outputs.deploy_out}}
+
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
+  conda_file: ../../env/conda.yml

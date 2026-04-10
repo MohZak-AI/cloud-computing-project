@@ -1,0 +1,30 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+
+name: train_model
+
+type: command
+
+inputs:
+  train_data:
+    type: uri_folder
+  val_data:
+    type: uri_folder
+  test_data:
+    type: uri_folder
+
+outputs:
+  model_output:
+    type: uri_folder
+
+code: .
+
+command: >
+  python train.py
+  --train_data ${{inputs.train_data}}
+  --val_data ${{inputs.val_data}}
+  --test_data ${{inputs.test_data}}
+  --output ${{outputs.model_output}}
+
+environment:
+  conda_file: ../../env/train_conda.yml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

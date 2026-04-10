@@ -1,0 +1,17 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+
+display_name: us_accidents_phase2_split
+experiment_name: us_accidents_phase2_split_experiment
+
+settings:
+  default_compute: azureml:Project
+
+jobs:
+  split_step:
+    type: command
+    component: azureml:split_dataset@latest
+    inputs:
+      input_data:
+        type: uri_folder
+        path: azureml://datastores/trafficaccidentproject/paths/accidents_features_v1/

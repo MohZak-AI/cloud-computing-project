@@ -1,0 +1,6 @@
+$schema: https://azuremlschemas.azureedge.net/latest/data.schema.json
+name: us_accidents_deploy
+version: 1
+type: uri_folder
+path: azureml://datastores/workspaceblobstore/paths/azureml/e9b3ef08-1680-420b-a878-729a38a30eb0/deploy_out/
+description: Phase 2 deployment split for US Accidents

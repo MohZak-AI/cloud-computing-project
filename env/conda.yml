@@ -1,0 +1,9 @@
+name: phase2-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - pandas
+      - pyarrow

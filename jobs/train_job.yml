@@ -1,0 +1,24 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+
+display_name: us_accidents_training_pipeline
+experiment_name: us_accidents_training_experiment
+
+
+settings:
+  default_compute: azureml:Project
+
+jobs:
+  train_step:
+    type: command
+    component: azureml:train_us_accidents_model@latest
+    inputs:
+      train_data:
+        type: uri_folder
+        path: azureml:us_accidents_train@latest
+      val_data:
+        type: uri_folder
+        path: azureml:us_accidents_val@latest
+      test_data:
+        type: uri_folder
+        path: azureml:us_accidents_test@latest

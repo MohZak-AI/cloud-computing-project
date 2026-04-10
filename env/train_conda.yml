@@ -1,0 +1,20 @@
+name: us-accidents-train-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - pandas
+      - pyarrow
+      - scikit-learn
+      - joblib
+      - mlflow
+      - azureml-mlflow
+      - numpy
+
+
+
+
+
+
